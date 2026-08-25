@@ -1,0 +1,13 @@
+{
+  "id": "texture_pack_blue_template",
+  "name": "Blue Texture Pack Template",
+  "version": "0.1.0",
+  "entry": "main.lua",
+  "api": 2,
+  "game_version": ">=0.2.24",
+  "category": "OTHER",
+  "profile": "content",
+  "games": ["blue"],
+  "affects_link": false,
+  "description": "Asset-free template for a player-created Blue texture pack. Add only creator-owned or licensed PNG replacements under overrides/."
+}
