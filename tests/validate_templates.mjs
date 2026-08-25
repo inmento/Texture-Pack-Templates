@@ -35,10 +35,12 @@ for (const edition of editions) {
   if (!Array.isArray(manifest.games) || manifest.games.length !== 1 || manifest.games[0] !== edition) {
     fail(`${edition}: manifest must target only ${edition}`);
   }
+  if (manifest.version !== "0.2.0") fail(`${edition}: expected complete-visual template version 0.2.0`);
   if (manifest.api !== 2 || manifest.game_version !== ">=0.2.24") fail(`${edition}: engine requirement drifted`);
   if (manifest.entry !== "main.lua") fail(`${edition}: expected main.lua entry`);
-  if (!fs.existsSync(entryPath) || !fs.readFileSync(entryPath, "utf8").includes("return function(_mod)")) {
-    fail(`${edition}: no-op entrypoint is invalid`);
+  const entry = fs.existsSync(entryPath) ? fs.readFileSync(entryPath, "utf8") : "";
+  for (const required of ["assets/generated/", "overrides/", "newImage", "newImageData", "newVideo", "mod:info", "mod.assets:path"]) {
+    if (!entry.includes(required)) fail(`${edition}: missing complete visual-loader bridge token ${required}`);
   }
   if (!fs.existsSync(overrideReadme) || !fs.existsSync(marker)) fail(`${edition}: override directory documentation or marker is missing`);
 
@@ -50,4 +52,4 @@ for (const edition of editions) {
 }
 
 if (failures > 0) process.exit(1);
-console.log(`PASS: ${editions.length} edition-specific templates satisfy manifest, no-op, and asset-free safeguards.`);
+console.log(`PASS: ${editions.length} edition-specific templates satisfy manifest, complete visual-loader bridge, and asset-free safeguards.`);

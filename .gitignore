@@ -1,4 +1,4 @@
 dist/
+.package-stage/
 *.zip
 .DS_Store
-.package-stage/

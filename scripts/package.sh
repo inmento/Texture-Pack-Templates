@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 OUT="$ROOT/dist"
 STAGE="$ROOT/.package-stage"
-VERSION="0.1.0"
+VERSION="0.2.0"
 EDITIONS=(red blue yellow gold silver crystal)
 
 rm -rf "$OUT" "$STAGE"
@@ -21,7 +21,7 @@ done
 
 # The source bundle is for creators who want every edition template and the
 # Crystal path reference. It contains no cache, archive, image, audio, or Lua
-# game data beyond the six no-op entrypoints.
+# game data beyond the six visual-only loader bridge entrypoints.
 source_stage="$STAGE/Texture-Pack-Templates-${VERSION}"
 mkdir -p "$source_stage"
 cp -a "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/docs" "$ROOT/templates" "$source_stage/"

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+VERSION="0.2.0"
 
 write_template() {
   local game="$1"
@@ -13,7 +14,7 @@ write_template() {
 {
   "id": "$id",
   "name": "$label Texture Pack Template",
-  "version": "0.1.0",
+  "version": "$VERSION",
   "entry": "main.lua",
   "api": 2,
   "game_version": ">=0.2.24",
@@ -21,70 +22,116 @@ write_template() {
   "profile": "content",
   "games": ["$game"],
   "affects_link": false,
-  "description": "Asset-free template for a player-created $label texture pack. Add only creator-owned or licensed PNG replacements under overrides/."
+  "description": "Asset-free template for a player-created $label visual pack. Add only creator-owned or licensed replacements below overrides/."
 }
 EOF
 
   cat > "$dir/main.lua" <<'EOF'
--- Texture Pack Template
+-- Texture Pack Template — complete generated-visual override bridge
 --
--- This file intentionally does nothing. Gen1Recomp's central asset resolver
--- automatically shadows assets/generated/<relative path> with an enabled
--- mod's overrides/<relative path> file. Keep custom artwork in overrides/.
-return function(_mod)
+-- Gen1Recomp resolves normal assets/generated/<relative> image loads through
+-- enabled mods' overrides/<relative> files. This narrow bridge also covers
+-- direct LÖVE visual-loader calls made by engine presentation code, including
+-- the animated intro/title path. It changes only a matching generated visual
+-- path owned by this pack; data, audio, and all non-generated paths pass through.
+local GENERATED = "assets/generated/"
+
+return function(mod)
+  local function resolveVisual(path)
+    if type(path) ~= "string" or path:sub(1, #GENERATED) ~= GENERATED then
+      return path
+    end
+    local relative = path:sub(#GENERATED + 1)
+    local override = "overrides/" .. relative
+    local info = mod:info(override)
+    if info and info.type == "file" then
+      return mod.assets:path(override)
+    end
+    return path
+  end
+
+  local function wrapLoader(owner, name)
+    if type(owner) ~= "table" or type(owner[name]) ~= "function" then return end
+    local original = owner[name]
+    owner[name] = function(path, ...)
+      return original(resolveVisual(path), ...)
+    end
+  end
+
+  -- Image, image-data, and video calls all retain their original arguments;
+  -- only an existing overrides/<relative> visual file changes the source path.
+  if love then
+    wrapLoader(love.graphics, "newImage")
+    wrapLoader(love.image, "newImageData")
+    wrapLoader(love.graphics, "newVideo")
+  end
 end
 EOF
 
   cat > "$dir/overrides/README.md" <<EOF
-# $label override folder
+# $label visual override folder
 
-Place only your own or properly licensed PNG replacements in this folder.
+Place only your own or properly licensed **visual** replacements in this
+folder. Preserve the exact relative path after the active game's
+\`assets/generated/\` prefix. For example,
+\`assets/generated/title/copyright.png\` becomes
+\`overrides/title/copyright.png\`.
 
-For every image you replace, copy the portion of the active game's original
-asset path that comes **after the assets/generated/ prefix**. For example,
-assets/generated/title/copyright.png becomes
-overrides/title/copyright.png.
+This template covers normal generated-image resolution and direct presentation
+loads used by animated intro and title sequences. In the supplied game
+references, the intro is built from PNG frame, sprite, and tile-sheet assets;
+it is **not** a standalone video file. The bridge also routes a future
+\`love.graphics.newVideo\` generated-asset call through the same path rule if
+that runtime loader is used.
 
-Do not include copied game artwork, ROM files, extracted asset folders, audio,
-or Lua game data in this package. A missing override safely falls back to the
-player's imported game asset.
+Do not include copied game artwork, ROM files, extracted asset folders, Lua game
+data, \`.bin\` files, or audio in this package. A missing override safely falls
+back to the player's imported asset.
 EOF
 
   cat > "$dir/README.md" <<EOF
 # $label Texture Pack Template
 
-This is an **empty, asset-free template** for a player-created $label texture
+This is an **empty, asset-free template** for a player-created $label visual
 pack. Its game scope is intentionally limited to **$label**. The template has
-no texture files of its own and does not change game data or behavior.
+no visual files of its own and does not change game data or behavior.
 
 ## Make your own pack
 
 1. Copy this template to a new folder and give it a new folder name.
 2. Change the manifest id, name, and description so the pack belongs only to
    you. Do not reuse the template id $id for a second installed pack.
-3. Add creator-owned or licensed PNG files below the overrides folder.
-4. Match the original path after the assets/generated prefix exactly.
-5. Zip the **contents** of your new folder so manifest.json is at the ZIP root,
-   then install it as its own mod.
+3. Add creator-owned or licensed visual replacement files below \`overrides/\`.
+4. Match the original path after the \`assets/generated/\` prefix exactly,
+   including subdirectories and filename extension.
+5. Zip the **contents** of your new folder so \`manifest.json\` is at the ZIP
+   root, then install it as its own mod.
 
-## Examples
+## Visual path rule
 
-| Active game path | Your pack path |
-|---|---|
-| assets/generated/battle/front/pikachu.png | overrides/battle/front/pikachu.png |
-| assets/generated/tilesets/cavern.png | overrides/tilesets/cavern.png |
-| assets/generated/sprites/beauty.png | overrides/sprites/beauty.png |
-| assets/generated/title/copyright.png | overrides/title/copyright.png |
+| Active game path | Your pack path | Covered loader route |
+|---|---|---|
+| \`assets/generated/battle/front/pikachu.png\` | \`overrides/battle/front/pikachu.png\` | Standard image resolution |
+| \`assets/generated/tilesets/cavern.png\` | \`overrides/tilesets/cavern.png\` | Standard image resolution |
+| \`assets/generated/sprites/beauty.png\` | \`overrides/sprites/beauty.png\` | Standard image resolution |
+| \`assets/generated/title/copyright.png\` | \`overrides/title/copyright.png\` | Direct title/intro image load |
+| \`assets/generated/intro/shrink1.png\` | \`overrides/intro/shrink1.png\` | Animated intro frame/tile load |
+
+The bridge covers generated paths passed to LÖVE's image, image-data, and video
+loaders. It does not replace audio, generated Lua/data files, or runtime
+program files. Those surfaces belong to the dedicated audio and gameplay mod
+systems, not a texture pack.
 
 ## Compatibility requirements
 
 Keep a replacement image's dimensions, transparency, tile order, frame order,
 and sprite-sheet layout compatible with the image it replaces. Cosmetic changes
 that keep the same layout are safe. Resizing or rearranging tiles or frames can
-make maps, sprites, menus, or battle animations draw incorrectly.
+make maps, sprites, menus, intro animation, title screens, or battle animation
+draw incorrectly.
 
 If two enabled packs replace the same path, the higher-priority pack wins.
-Missing files do not cause an error; the game uses its own imported image.
+Missing files do not cause an error; the game uses its own imported asset.
 EOF
 
   touch "$dir/overrides/.gitkeep"
@@ -100,15 +147,24 @@ write_template crystal "Crystal"
 cat > "$ROOT/README.md" <<'EOF'
 # Texture Pack Templates for Gen1Recomp
 
-These six asset-free templates let players create their own texture-replacement
-mods for **Red, Blue, Yellow, Gold, Silver, and Crystal**. They rely on the
-engine's built-in generated-asset shadowing mechanism: an enabled template pack
-can provide `overrides/<relative path>` for an original
-`assets/generated/<relative path>` image.
+These six asset-free templates let players create their own complete visual
+replacement mods for **Red, Blue, Yellow, Gold, Silver, and Crystal**. A pack
+can replace any visual file the active game loads below
+`assets/generated/<relative path>` by placing a creator-owned or licensed file
+at `overrides/<relative path>`.
+
+The templates cover the engine's ordinary generated-image resolver and a narrow
+visual-loader bridge for direct LÖVE image, image-data, and video calls. This
+means title and intro visuals are included rather than being treated as a
+special exception. In the supplied Red/Blue/Yellow/Gold/Silver and Crystal
+references, intros are animated from generated PNG frames, sprite sheets, and
+tile sheets—not standalone video files—so replace the relevant `intro/` PNGs.
+If a supported runtime later loads a generated video through
+`love.graphics.newVideo`, the same relative override rule applies.
 
 The project ships **no game artwork, ROM data, extracted asset tree, audio, or
-third-party texture pack**. It contains only manifest files, no-op Lua entries,
-empty override directories, and instructions.
+third-party texture pack**. It contains only manifests, narrow visual path
+bridges, empty override directories, and instructions.
 
 ## Choose the edition-specific template
 
@@ -121,51 +177,54 @@ empty override directories, and instructions.
 | `templates/silver` | Silver |
 | `templates/crystal` | Crystal |
 
-Use the template that matches the game whose generated image paths you are
+Use the template that matches the game whose generated visual paths you are
 replacing. A player who wants variations for multiple games should create one
 separate pack for each edition. This is more reliable than a single all-game
-pack because asset filenames and image geometry differ across editions.
+pack because asset filenames and visual geometry differ across editions.
 
 ## Path rule
 
-If a player's own imported game uses:
+If a player's imported game uses:
 
 ```text
 assets/generated/tilesets/cavern.png
 ```
 
-their texture pack uses:
+their visual pack uses:
 
 ```text
 overrides/tilesets/cavern.png
 ```
 
 The portion after `assets/generated/` must match exactly. Missing override files
-fall back to the player's imported asset.
+fall back to the player's imported asset. The visual bridge never redirects
+non-generated paths and only redirects a path when that pack owns a matching
+override file.
+
+## Included visual surface
+
+The supplied reference trees show generated visual families such as battle art,
+battle animations, tilesets, sprites, UI, fonts, title, intro, credits, trade,
+slots, and edition-specific screens. Replace any compatible image in those
+families by exact path. The templates intentionally exclude generated Lua/data,
+`.bin` runtime programs, and audio; they are not visual textures and should use
+the dedicated systems that own those formats.
 
 ## Legal and practical boundary
 
 A pack must contain only artwork its author created or has permission to use.
 Do not package original game textures, ROM dumps, extracted cache files, Lua
-game data, or audio. Keep dimensions, transparency, tile placement, and sprite
-frame geometry compatible with the original image.
-
-## Crystal coverage
-
-The supplied Crystal archive confirms generated image families for battle art,
-battle animation graphics, tilesets, sprites, title, intro, fonts, menu, Pack,
-Pokédex, Pokégear, mobile UI, card flip, PC, slots, and trade art. The Crystal
-template uses the same `overrides/<relative path>` contract as the other five
-editions.
+game data, audio, or runtime binaries. Keep dimensions, transparency, tile
+placement, and sprite-frame geometry compatible with the original visual asset.
 EOF
 
 cat > "$ROOT/docs/CRYSTAL_PATH_REFERENCE.md" <<'EOF'
-# Crystal texture-path reference
+# Crystal visual-path reference
 
-The supplied Crystal archive confirms that Crystal exposes generated image files
-under `assets/generated/`. Do **not** copy that tree into a texture pack. Use it
-only to identify a file the player has independently created or is licensed to
-use, then place that replacement under the corresponding `overrides/` path.
+The supplied Crystal archive confirms that Crystal exposes generated visual
+files under `assets/generated/`. Do **not** copy that tree into a visual pack.
+Use it only to identify a file the player independently created or is licensed
+to use, then place that replacement under the corresponding `overrides/` path.
 
 | Crystal family | Supplied reference example | Pack location |
 |---|---|---|
@@ -179,16 +238,18 @@ use, then place that replacement under the corresponding `overrides/` path.
 | Pack | `assets/generated/pack/menu.png` | `overrides/pack/menu.png` |
 | Pokédex | `assets/generated/pokedex/dex.png` | `overrides/pokedex/dex.png` |
 | Pokégear | `assets/generated/pokegear/gear.png` | `overrides/pokegear/gear.png` |
-| Intro | `assets/generated/intro/background_tiles.png` | `overrides/intro/background_tiles.png` |
+| Intro frame/sheet | `assets/generated/intro/background_tiles.png` | `overrides/intro/background_tiles.png` |
 
-The Crystal archive includes 1,286 generated image files spanning battle,
+The Crystal archive includes 1,286 generated PNG visual files spanning battle,
 battle animations, card flip, credits, diploma, emotes, fonts, icons, intro,
 menu, mobile, naming, Pack, PC, Pokédex, Pokégear, slots, splash, sprites,
-tilesets, title, trade, and Trainer Card image families.
+tilesets, title, trade, and Trainer Card image families. Its intro sequence is
+an animation assembled from these PNG assets, not a separately shipped video.
 EOF
 
 cat > "$ROOT/.gitignore" <<'EOF'
 dist/
+.package-stage/
 *.zip
 .DS_Store
 EOF
