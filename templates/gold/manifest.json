@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "entry": "main.lua",
   "api": 2,
-  "game_version": ">=0.2.24",
+  "game_version": ">=0.2.18",
   "category": "OTHER",
   "profile": "content",
   "games": ["gold"],

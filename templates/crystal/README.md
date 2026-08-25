@@ -2,7 +2,8 @@
 
 This is an **empty, asset-free template** for a player-created Crystal visual
 pack. Its game scope is intentionally limited to **Crystal**. The template has
-no visual files of its own and does not change game data or behavior.
+no visual files of its own and does not change game data or behavior. It requires
+Gen1Recomp **>=0.2.24**.
 
 ## Make your own pack
 

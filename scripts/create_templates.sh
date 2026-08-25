@@ -9,6 +9,10 @@ write_template() {
   local label="$2"
   local id="texture_pack_${game}_template"
   local dir="$ROOT/templates/$game"
+  local game_version=">=0.2.18"
+  # Crystal was added after 0.2.18, so its edition-specific template must not
+  # promise installation on an engine that cannot select or load Crystal.
+  if [[ "$game" == "crystal" ]]; then game_version=">=0.2.24"; fi
 
   cat > "$dir/manifest.json" <<EOF
 {
@@ -17,7 +21,7 @@ write_template() {
   "version": "$VERSION",
   "entry": "main.lua",
   "api": 2,
-  "game_version": ">=0.2.24",
+  "game_version": "$game_version",
   "category": "OTHER",
   "profile": "content",
   "games": ["$game"],
@@ -94,7 +98,8 @@ EOF
 
 This is an **empty, asset-free template** for a player-created $label visual
 pack. Its game scope is intentionally limited to **$label**. The template has
-no visual files of its own and does not change game data or behavior.
+no visual files of its own and does not change game data or behavior. It requires
+Gen1Recomp **$game_version**.
 
 ## Make your own pack
 
@@ -164,7 +169,9 @@ If a supported runtime later loads a generated video through
 
 The project ships **no game artwork, ROM data, extracted asset tree, audio, or
 third-party texture pack**. It contains only manifests, narrow visual path
-bridges, empty override directories, and instructions.
+bridges, empty override directories, and instructions. Red, Blue, Yellow, Gold,
+and Silver templates support Gen1Recomp `>=0.2.18`; the Crystal template retains
+its later engine floor because Crystal was not an available edition in 0.2.18.
 
 ## Choose the edition-specific template
 

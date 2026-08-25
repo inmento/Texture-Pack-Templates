@@ -36,7 +36,8 @@ for (const edition of editions) {
     fail(`${edition}: manifest must target only ${edition}`);
   }
   if (manifest.version !== "0.2.0") fail(`${edition}: expected complete-visual template version 0.2.0`);
-  if (manifest.api !== 2 || manifest.game_version !== ">=0.2.24") fail(`${edition}: engine requirement drifted`);
+  const expectedGameVersion = edition === "crystal" ? ">=0.2.24" : ">=0.2.18";
+  if (manifest.api !== 2 || manifest.game_version !== expectedGameVersion) fail(`${edition}: engine requirement drifted`);
   if (manifest.entry !== "main.lua") fail(`${edition}: expected main.lua entry`);
   const entry = fs.existsSync(entryPath) ? fs.readFileSync(entryPath, "utf8") : "";
   for (const required of ["assets/generated/", "overrides/", "newImage", "newImageData", "newVideo", "mod:info", "mod.assets:path"]) {

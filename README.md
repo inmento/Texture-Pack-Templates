@@ -17,7 +17,9 @@ If a supported runtime later loads a generated video through
 
 The project ships **no game artwork, ROM data, extracted asset tree, audio, or
 third-party texture pack**. It contains only manifests, narrow visual path
-bridges, empty override directories, and instructions.
+bridges, empty override directories, and instructions. Red, Blue, Yellow, Gold,
+and Silver templates support Gen1Recomp `>=0.2.18`; the Crystal template retains
+its later engine floor because Crystal was not an available edition in 0.2.18.
 
 ## Choose the edition-specific template
 
