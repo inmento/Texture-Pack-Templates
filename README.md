@@ -71,3 +71,7 @@ A pack must contain only artwork its author created or has permission to use.
 Do not package original game textures, ROM dumps, extracted cache files, Lua
 game data, audio, or runtime binaries. Keep dimensions, transparency, tile
 placement, and sprite-frame geometry compatible with the original visual asset.
+
+## License
+
+Unless a file or third-party notice says otherwise, this repository's original source code, configuration, tests, and documentation are licensed under the [MIT License](LICENSE). Read [LICENSE_SCOPE.md](LICENSE_SCOPE.md) for attribution guidance and third-party, asset, user-supplied-source, and game-IP boundaries.
