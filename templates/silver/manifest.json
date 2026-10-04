@@ -4,10 +4,12 @@
   "version": "0.2.0",
   "entry": "main.lua",
   "api": 2,
-  "game_version": ">=0.2.18",
+  "game_version": ">=0.3.51",
   "category": "OTHER",
   "profile": "content",
-  "games": ["silver"],
+  "games": [
+    "silver"
+  ],
   "affects_link": false,
   "description": "Asset-free template for a player-created Silver visual pack. Add only creator-owned or licensed replacements below overrides/."
 }
